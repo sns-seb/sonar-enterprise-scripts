@@ -71,10 +71,8 @@ if [ "${BRANCH_COMMON_ANCESTOR_SHA1}" != "${MASTER_COMMON_ANCESTOR_SHA1}" ]; the
   read
 fi
 
+# if rebase finds conflicts, script will stop
 git rebase "${REMOTE_CORE_PLUGINS}/master"
-
-info "If rebase failed, hit CTRL+C to stop and do rebase manually"
-read
 
 info "moving files to private dir in new commits in ${WORK_BRANCH_NAME}"
 MOVE_CMD="mkdir -p private \
