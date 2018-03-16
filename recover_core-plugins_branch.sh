@@ -3,6 +3,10 @@
 
 ##############################################################################################
 ##
+## This script is intended to be run on a clone of repository SonarSource/sonar-enterprise.
+##
+## This script takes one argument: the name of the branch to recover (eg. feature/sl/foo).
+##
 ## This script intends to recover a branch created in repository SonarSource/sonar-core-plugins
 ## and modifying its commits to thay they apply on SonarSource/sonar-enterprise master.
 ##
