@@ -133,3 +133,7 @@ git merge --ff-only "public_master_work"
 info "create tags"
 git tag "tag_public_master_${MASTER_HEAD}" "public_master"
 git tag "tag_master_${MASTER_HEAD}" "master"
+
+# TODO push public_master and tags on master and public_master to remote
+
+info "done"
