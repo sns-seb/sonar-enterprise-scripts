@@ -86,33 +86,33 @@ if [ "$LATEST_MASTER_SHA1" = "$MASTER_HEAD" ]; then
   exit 0
 fi
 
-# (re)create work_master
-refresh_branch "work_master" "master"
+# (re)create master_work
+refresh_branch "master_work" "master"
 
 pause
 # remove private repo data since LATEST_MASTER_TAG
-info "deleting private data from work_public_master"
+info "deleting private data from public_master_work"
 git filter-branch -f --prune-empty --index-filter 'git rm --cached --ignore-unmatch private/ -r' ${LATEST_MASTER_SHA1}..HEAD
 
 pause
-# (re)create work_public_master from public_master
-refresh_branch "work_public_master" "public_master"
+# (re)create public_master_work from public_master
+refresh_branch "public_master_work" "public_master"
 
 pause
-# update work_public_master from master
-git checkout "work_public_master"
-info "cherry-picking from work_master into work_public_master"
-git cherry-pick --keep-redundant-commits --allow-empty --strategy=recursive -X ours ${LATEST_MASTER_SHA1}..work_master
+# update public_master_work from master
+git checkout "public_master_work"
+info "cherry-picking from master_work into public_master_work"
+git cherry-pick --keep-redundant-commits --allow-empty --strategy=recursive -X ours ${LATEST_MASTER_SHA1}..master_work
 
 pause
 info "clear any empty commit"
 git filter-branch -f --prune-empty ${LATEST_MASTER_PUBLIC_TAG}..HEAD
 
 pause
-# merge work_public_master into public_master (ff-only for safety)
+# merge public_master_work into public_master (ff-only for safety)
 info "update public_master"
 git checkout "public_master"
-git merge --ff-only "work_public_master"
+git merge --ff-only "public_master_work"
 
 # create tags
 info "create tags"
