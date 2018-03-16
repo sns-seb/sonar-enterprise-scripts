@@ -4,7 +4,7 @@
 ##############################################################################################
 ##
 ## This script is intended to be run on a clone of repository SonarSource/sonar-enterprise.
-## This script requires that script init_enteprise.sh has been run.
+## This script requires that script init_enteprise.sh has been run prior to being called.
 ##
 ## This script updates branch "public_master" with latest changes in "master" which
 ## apply only to public content.
