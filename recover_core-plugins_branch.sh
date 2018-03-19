@@ -60,6 +60,7 @@ function recover_core_plugin_branch() {
   info "create branch ${WORK_BRANCH_NAME}"
 
   refresh_branch "${WORK_BRANCH_NAME}" "${REMOTE_CORE_PLUGINS}/${BRANCH_NAME}"
+  git branch --unset-upstream  
 
   local MASTER_COMMON_ANCESTOR_SHA1="$(git merge-base "master" "${REMOTE_CORE_PLUGINS}/master")"
   local BRANCH_COMMON_ANCESTOR_SHA1="$(git merge-base "${WORK_BRANCH_NAME}" "${REMOTE_CORE_PLUGINS}/master")"
