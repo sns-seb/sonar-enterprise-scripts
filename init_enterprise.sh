@@ -34,9 +34,9 @@ if [ "$(git log --pretty="%D" "public_master" | grep " tag_public_master")" != "
 fi
 
 # in branch master_public, created from SonarSource/sonarqube master
-PUBLIC_SQ_HEAD_SHA1="fe6fcaba75e7ca02678a4ce0dff601b448a2fd7a"
+PUBLIC_SQ_HEAD_SHA1="73e39a73e70b97ab0043cf5abc4eddcf68f2ce00"
 # in branch master
-SQ_MERGE_COMMIT_SHA1="50bdba5ed6693aec1be2e1b04a63c1b0c1ef49fd"
+SQ_MERGE_COMMIT_SHA1="b4eeaaa8b52bf9a51c2e4bf18436831ccb389146"
 
 # create initial tag commits
 info "create initial tags"
