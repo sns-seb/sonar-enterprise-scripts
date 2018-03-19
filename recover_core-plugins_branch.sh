@@ -19,6 +19,9 @@
 
 set -euo pipefail
 
+REMOTE_CORE_PLUGINS="core-plugins"
+REMOTE_SQ="sq"
+
 function info() {
   local MESSAGE="$1"
   echo
@@ -47,54 +50,61 @@ function refresh_branch() {
   git checkout -b "${BRANCH}" "${NEW_HEAD}"
 }
 
-REMOTE_CORE_PLUGINS="core-plugins"
-REMOTE_SQ="sq"
-BRANCH_NAME="$1"
+function recover_core_plugin_branch() {
+  BRANCH_NAME="$1"
 
-# just to be sure on which branch we currently are
-git checkout master
+  echo "Recovering branch core-plugins $BRANCH_NAME (and merge into SQ branch with same name if exists)..."
+  pause
 
-echo "Recovering branch core-plugins $BRANCH_NAME (and merge into SQ branch with same name if exists)..."
-echo
+  local WORK_BRANCH_NAME="${BRANCH_NAME}_work"
+  info "create branch ${WORK_BRANCH_NAME}"
 
-if [ "$(git branch -a | grep "${REMOTE_SQ}/${BRANCH_NAME}" || true)" != "" ]; then
-  info "SQ branch ${BRANCH_NAME} exists"
-fi
+  refresh_branch "${WORK_BRANCH_NAME}" "${REMOTE_CORE_PLUGINS}/${BRANCH_NAME}"
 
-WORK_BRANCH_NAME="${BRANCH_NAME}_work"
-info "create branch ${WORK_BRANCH_NAME}"
-refresh_branch "${WORK_BRANCH_NAME}" "${REMOTE_CORE_PLUGINS}/${BRANCH_NAME}"
+  local MASTER_COMMON_ANCESTOR_SHA1="$(git merge-base "master" "${REMOTE_CORE_PLUGINS}/master")"
+  local BRANCH_COMMON_ANCESTOR_SHA1="$(git merge-base "${WORK_BRANCH_NAME}" "${REMOTE_CORE_PLUGINS}/master")"
+  echo "MASTER_COMMON_ANCESTOR_SHA1=$MASTER_COMMON_ANCESTOR_SHA1"
+  echo "BRANCH_COMMON_ANCESTOR_SHA1=$BRANCH_COMMON_ANCESTOR_SHA1"
 
-MASTER_COMMON_ANCESTOR_SHA1="$(git merge-base "master" "${REMOTE_CORE_PLUGINS}/master")"
-BRANCH_COMMON_ANCESTOR_SHA1="$(git merge-base "${WORK_BRANCH_NAME}" "${REMOTE_CORE_PLUGINS}/master")"
-echo "MASTER_COMMON_ANCESTOR_SHA1=$MASTER_COMMON_ANCESTOR_SHA1"
-echo "BRANCH_COMMON_ANCESTOR_SHA1=$BRANCH_COMMON_ANCESTOR_SHA1"
+  if [ "${BRANCH_COMMON_ANCESTOR_SHA1}" != "${MASTER_COMMON_ANCESTOR_SHA1}" ]; then
+    error "core-plugins branch ${BRANCH_NAME} has not been rebased on ${REMOTE_CORE_PLUGINS}/master. Hit enter to attempt rebase, CTRL+C to stop"
+    read
+  fi
 
-if [ "${BRANCH_COMMON_ANCESTOR_SHA1}" != "${MASTER_COMMON_ANCESTOR_SHA1}" ]; then
-  error "core-plugins branch ${BRANCH_NAME} has not been rebased on ${REMOTE_CORE_PLUGINS}/master. Hit enter to attempt rebase, CTRL+C to stop"
-  read
-fi
+  # if rebase finds conflicts, script will stop
+  git rebase "${REMOTE_CORE_PLUGINS}/master"
 
-# if rebase finds conflicts, script will stop
-git rebase "${REMOTE_CORE_PLUGINS}/master"
-
-info "moving files to private dir in new commits in ${WORK_BRANCH_NAME}"
-MOVE_CMD="mkdir -p private \
+  info "moving files to private dir in new commits in ${WORK_BRANCH_NAME}"
+  local MOVE_CMD="mkdir -p private \
 && mv sonar-branch-plugin/ sonar-billing-plugin/ sonar-developer-plugin/ sonar-governance-plugin/ sonar-ha-plugin/ private/ \
 && mv it-billing/ it-branch/ it-developer/ it-governance/ it-ha/ private/ \
 && mv build.gradle .gitignore settings.gradle Jenkinsfile private/ \
 && rm gradlew gradlew.bat .travis.yml travis.sh README.md gradle/ -r"
 
-PARENT_OF_MASTER_COMMON_ANCESTOR_SHA1="$(git log -1 --pretty=tformat:%H "${MASTER_COMMON_ANCESTOR_SHA1}~1")"
-echo "PARENT_OF_MASTER_COMMON_ANCESTOR_SHA1=$PARENT_OF_MASTER_COMMON_ANCESTOR_SHA1"
-git filter-branch -f --tree-filter "${MOVE_CMD}" -- ${PARENT_OF_MASTER_COMMON_ANCESTOR_SHA1}..HEAD
+  local PARENT_OF_MASTER_COMMON_ANCESTOR_SHA1="$(git log -1 --pretty=tformat:%H "${MASTER_COMMON_ANCESTOR_SHA1}~1")"
+  echo "PARENT_OF_MASTER_COMMON_ANCESTOR_SHA1=$PARENT_OF_MASTER_COMMON_ANCESTOR_SHA1"
+  git filter-branch -f --tree-filter "${MOVE_CMD}" -- ${PARENT_OF_MASTER_COMMON_ANCESTOR_SHA1}..HEAD
 
-NEW_MASTER_COMMON_ANCESTOR_SHA1="$(git log --format=%H ${PARENT_OF_MASTER_COMMON_ANCESTOR_SHA1}..HEAD | tail -1)"
-echo "NEW_MASTER_COMMON_ANCESTOR_SHA1=$NEW_MASTER_COMMON_ANCESTOR_SHA1"
+  local NEW_MASTER_COMMON_ANCESTOR_SHA1="$(git log --format=%H ${PARENT_OF_MASTER_COMMON_ANCESTOR_SHA1}..HEAD | tail -1)"
+  echo "NEW_MASTER_COMMON_ANCESTOR_SHA1=$NEW_MASTER_COMMON_ANCESTOR_SHA1"
 
-info "create branch ${BRANCH_NAME} from master and add new commits to it"
-refresh_branch "${BRANCH_NAME}" "${REMOTE_SQ}/${BRANCH_NAME}"
-git rebase master
-git cherry-pick --keep-redundant-commits --allow-empty --strategy=recursive -X ours ${NEW_MASTER_COMMON_ANCESTOR_SHA1}..${WORK_BRANCH_NAME}
+  if [ "$(git branch -a | grep "${REMOTE_SQ}/${BRANCH_NAME}" || true)" != "" ]; then
+    info "create branch ${BRANCH_NAME} from ${REMOTE_SQ}/${BRANCH_NAME}, rebase it on master and add new commits to it"
+    refresh_branch "${BRANCH_NAME}" "${REMOTE_SQ}/${BRANCH_NAME}"
+    git rebase master
+  else
+    info "create branch ${BRANCH_NAME} from master and add new commits to it"
+    refresh_branch "${BRANCH_NAME}" "master"
+  fi
+
+  git cherry-pick --keep-redundant-commits --allow-empty --strategy=recursive -X ours ${NEW_MASTER_COMMON_ANCESTOR_SHA1}..${WORK_BRANCH_NAME}
+}
+
+# just to be sure on which branch we currently are
+git checkout master
+
+for i in $(git branch --all | grep core-plugins | grep -v dogfood | grep -v master | grep -v branch-7.0 | grep -v feature/eh/GOV-324 | grep -v feature/jl/fix_billing_qa | cut -c 24-300); do
+  recover_core_plugin_branch "$i"
+done
 
 info "done"
