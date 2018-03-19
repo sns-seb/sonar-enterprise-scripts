@@ -17,9 +17,6 @@
 
 set -euo pipefail
 
-# TRASH
-#CHILD_OF_LATEST_MASTER_SHA1="$(git log --format=%H ${LATEST_MASTER_SHA1}..master | tail -1)"
-
 function info() {
   local MESSAGE="$1"
   echo
@@ -133,7 +130,5 @@ git merge --ff-only "public_master_work"
 info "create tags"
 git tag "tag_public_master_${MASTER_HEAD}" "public_master"
 git tag "tag_master_${MASTER_HEAD}" "master"
-
-# TODO push public_master and tags on master and public_master to remote
 
 info "done"
