@@ -134,6 +134,3 @@ git update-ref "${REF_TREE_ROOT}/${TIMESTAMP}/public_master" "${PUBLIC_MASTER_HE
 git for-each-ref --count=2 --sort=-refname 'refs/public_sync'
 
 info "done"
-
-exit 0
-
