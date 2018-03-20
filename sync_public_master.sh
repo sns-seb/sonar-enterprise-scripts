@@ -68,8 +68,8 @@ if [ "${LATEST_PUBLIC_MASTER_SYNC_DATE}" != "${LATEST_MASTER_SYNC_DATE}" ]; then
   exit 1
 fi
 
-LATEST_PUBLIC_MASTER_SHA1="$(echo "${LATEST_PUBLIC_MASTER_REF}" | cut -d ' ' -f 1)"
-LATEST_MASTER_SHA1="$(echo "${LATEST_MASTER_REF}" | cut -d ' ' -f 1)"
+LATEST_PUBLIC_MASTER_SHA1="${LATEST_PUBLIC_MASTER_REF%% *}"
+LATEST_MASTER_SHA1="${LATEST_MASTER_REF%% *}"
 
 LATEST_MASTER_COMMIT="$(git log -1 --pretty="%h - %s (%an %cr)" ${LATEST_MASTER_SHA1})"
 LATEST_PUBLIC_MASTER_COMMIT="$(git log -1 --pretty="%h - %s (%an %cr)" ${LATEST_PUBLIC_MASTER_SHA1})"
