@@ -49,7 +49,7 @@ fi
 if [ "$(git for-each-ref --count=1 "${REF_TREE_ROOT}")" != "" ]; then
   error "References already initialized. See values below:"
   git for-each-ref "${REF_TREE_ROOT}"
-#  exit 1
+  exit 1
 fi
 
 info "create inital refs"
