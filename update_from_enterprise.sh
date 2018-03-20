@@ -18,7 +18,7 @@ ENTERPRISE_REPO="git@github.com:SonarSource/sonar-enterprise.git"
 
 info "updating sonarqube master from sonar-enterprise public_master..."
 
-if [ "$(git remote -v | grep "enterprise" || true)" = "" ]; then
+if ! git remote -v | grep -q "enterprise"; then
   git remote add enterprise "${ENTERPRISE_REPO}"
 fi
 
