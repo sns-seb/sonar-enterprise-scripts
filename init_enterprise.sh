@@ -24,32 +24,38 @@ function error() {
   echo "[ERROR] ${MESSAGE}"
 }
 
+REMOTE="origin"
 SQ_REMOTE="sq"
-
+REF_TREE_ROOT="refs/public_sync"
 # in branch master_public, created from SonarSource/sonarqube master
 PUBLIC_SQ_HEAD_SHA1="73e39a73e70b97ab0043cf5abc4eddcf68f2ce00"
 # in branch master
 SQ_MERGE_COMMIT_SHA1="b4eeaaa8b52bf9a51c2e4bf18436831ccb389146"
 
+TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
+
 # to know where we are
 git checkout master
 
+info "Syncing refs from remote..."
+git fetch "${REMOTE}" "+refs/foo/*:refs/foo/*"
+
 # create "pulic_master" if doesn't exist yet
 if [ "$(git branch --list "public_master")" = "" ]; then
+  info "create branch public_master from ${PUBLIC_SQ_HEAD_SHA1}"
   git checkout -b "public_master" "${PUBLIC_SQ_HEAD_SHA1}"
 fi
 
-if [ "$(git log --pretty="%D" "master" | grep " tag_master")" != "" ]; then
-  error "tag already initialized on branch master"
-  exit 1
-fi
-if [ "$(git log --pretty="%D" "public_master" | grep " tag_public_master")" != "" ]; then
-  error "tag already initialized on branch public_master"
-  exit 1
+# fail if already initialized
+if [ "$(git for-each-ref --count=1 "${REF_TREE_ROOT}")" != "" ]; then
+  error "References already initialized. See values below:"
+  git for-each-ref "${REF_TREE_ROOT}"
+#  exit 1
 fi
 
-# create initial tag commits
-info "create initial tags"
-git tag "tag_public_master_${SQ_MERGE_COMMIT_SHA1}" ${PUBLIC_SQ_HEAD_SHA1}
-git tag "tag_master_${SQ_MERGE_COMMIT_SHA1}" ${SQ_MERGE_COMMIT_SHA1}
+info "create inital refs"
+git update-ref "${REF_TREE_ROOT}/${TIMESTAMP}/master" "${SQ_MERGE_COMMIT_SHA1}"
+git update-ref "${REF_TREE_ROOT}/${TIMESTAMP}/public_master" "${PUBLIC_SQ_HEAD_SHA1}"
+
+info "done"
 

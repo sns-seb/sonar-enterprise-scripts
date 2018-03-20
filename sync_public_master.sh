@@ -19,7 +19,6 @@ set -euo pipefail
 
 function info() {
   local MESSAGE="$1"
-  echo
   echo "[INFO] ${MESSAGE}"
 }
 
@@ -38,71 +37,61 @@ function refresh_branch() {
   local BRANCH="$1"
   local NEW_HEAD="$2"
 
- info "refresh ${BRANCH} to ${NEW_HEAD}"
+  info "refresh ${BRANCH} to ${NEW_HEAD}"
   if [ -n "$(git branch --list "${BRANCH}")" ]; then
     git branch -D "${BRANCH}"
   fi
   git checkout -b "${BRANCH}" "${NEW_HEAD}"
 }
 
-function most_recent_tag_matching_pattern_in_branch() {
-  local BRANCH="$1"
-  local START_WITH_PATTERN="$2"
+REF_TREE_ROOT="refs/public_sync"
+REMOTE="origin"
+TIMESTAMP="$(date +"%Y-%m-%d_%H-%M-%S")"
 
-  # grep on PATTERN with heading space to avoid matching tag containing searched pattern
-  # (and because tags are always prefixed by space in git log's output)
-  IFS=',' read -r -a REFERENCES <<< $(git log --pretty="%D" "${BRANCH}" | grep "tag:" | grep " $START_WITH_PATTERN" | head -1)
+# so that we know where we are
+git checkout "master"
 
-  for REFERENCE in "${REFERENCES[@]}"; do
-    # element might contain: "HEAD -> master, tag: tag_master_b73a4be295c4a0730613dcf29c12eb74e567a4eb, new_commits"
-    if [ -z "${REFERENCE##*tag:*}" ]; then
-      tags=(${REFERENCE})
-      for tag in ${tags[*]}; do
-        # multiple tags may match the pattern, but they're all as recent as the other, so take any of them
-        if [ -z "${tag##$START_WITH_PATTERN*}" ]; then
-          echo "$tag"
-          return
-        fi
-      done
-    fi
-  done
-}
+info "Syncing refs from remote..."
+git fetch "${REMOTE}" "+refs/foo/*:refs/foo/*"
 
+info "Reading references..."
+LATEST_PUBLIC_MASTER_REF="$(git for-each-ref --count=1 --sort=-refname 'refs/public_sync/*/public_master')"
+LATEST_MASTER_REF="$(git for-each-ref --count=1 --sort=-refname 'refs/public_sync/*/master')"
+LATEST_PUBLIC_MASTER_SYNC_DATE=$(echo "${LATEST_PUBLIC_MASTER_REF}" | cut -f 2 | cut -d '/' -f 3)
+LATEST_MASTER_SYNC_DATE=$(echo "${LATEST_MASTER_REF}" | cut -f 2 | cut -d '/' -f 3)
 
-# read info from public_master
-info "read info from public_master"
-LATEST_MASTER_PUBLIC_TAG="$(most_recent_tag_matching_pattern_in_branch "public_master" "tag_public_master_")"
-echo "LATEST_MASTER_PUBLIC_TAG=$LATEST_MASTER_PUBLIC_TAG"
-PUBLIC_MASTER_HEAD=$(git log -1 --pretty=tformat:%H "public_master")
-echo "PUBLIC_MASTER_HEAD=$PUBLIC_MASTER_HEAD"
-
-if [ "$(git log -1 --pretty="%D" "public_master" | grep "${LATEST_MASTER_PUBLIC_TAG}")" = "" ]; then
-  error "latest tag_public_master_* tag is not on public_master head. Previous run of synchonization script left an inconsistent state"
+if [ "${LATEST_PUBLIC_MASTER_SYNC_DATE}" != "${LATEST_MASTER_SYNC_DATE}" ]; then
+  error "Sync date of master (${LATEST_MASTER_SYNC_DATE}) and public_master (${LATEST_PUBLIC_MASTER_SYNC_DATE}) are not consistent. Cannot proceed."
   exit 1
 fi
 
-pause
-info "read info from master and update it"
-# update master
-git checkout "master"
-MASTER_HEAD=$(git log -1 --pretty=tformat:%H "master")
-echo "MASTER_HEAD=$MASTER_HEAD"
-LATEST_MASTER_TAG="$(most_recent_tag_matching_pattern_in_branch "master" "tag_master_")"
-echo "LATEST_MASTER_TAG=$LATEST_MASTER_TAG"
-LATEST_MASTER_SHA1="${LATEST_MASTER_TAG#tag_master_}"
-echo "LATEST_MASTER_SHA1=$LATEST_MASTER_SHA1"
+LATEST_PUBLIC_MASTER_SHA1="$(echo "${LATEST_PUBLIC_MASTER_REF}" | cut -d ' ' -f 1)"
+LATEST_MASTER_SHA1="$(echo "${LATEST_MASTER_REF}" | cut -d ' ' -f 1)"
 
-# git pull
-if [ "$LATEST_MASTER_SHA1" = "$MASTER_HEAD" ]; then
+LATEST_MASTER_COMMIT="$(git log -1 --pretty="%h - %s (%an %cr)" ${LATEST_MASTER_SHA1})"
+LATEST_PUBLIC_MASTER_COMMIT="$(git log -1 --pretty="%h - %s (%an %cr)" ${LATEST_PUBLIC_MASTER_SHA1})"
+info "Latest sync merged \"${LATEST_MASTER_COMMIT}\" into branch public_master as \"${LATEST_PUBLIC_MASTER_COMMIT}\" with timestamp \"${LATEST_MASTER_SYNC_DATE}\""
+
+PUBLIC_MASTER_HEAD_SHA1="$(git log -1 --pretty="%H" "public_master")"
+if [ "${PUBLIC_MASTER_HEAD_SHA1}" != "${LATEST_PUBLIC_MASTER_SHA1}" ]; then
+  error "Latest reference to public master (${LATEST_PUBLIC_MASTER_SHA1}) is not HEAD of branch public_master. Previous run of synchonization script left an inconsistent state"
+  exit 1
+fi
+
+MASTER_HEAD_SHA1=$(git log -1 --pretty="%H" "master")
+if [ "$LATEST_MASTER_SHA1" = "$MASTER_HEAD_SHA1" ]; then
   info "no new commit to merge"
   exit 0
 fi
+
+MASTER_HEAD_COMMIT="$(git log -1 --pretty="%h - %s (%an %cr)" "${MASTER_HEAD_SHA1}")"
+info "Merging \"${MASTER_HEAD_COMMIT}\" into branch public_master..."
 
 # (re)create master_work
 refresh_branch "master_work" "master"
 
 pause
-# remove private repo data since LATEST_MASTER_TAG
+# remove private repo data since LATEST_MASTER_SHA1
 info "deleting private data from public_master_work"
 git filter-branch -f --prune-empty --index-filter 'git rm --cached --ignore-unmatch private/ -r' ${LATEST_MASTER_SHA1}..HEAD
 
@@ -118,7 +107,7 @@ git cherry-pick --keep-redundant-commits --allow-empty --strategy=recursive -X o
 
 pause
 info "clear any empty commit"
-git filter-branch -f --prune-empty ${LATEST_MASTER_PUBLIC_TAG}..HEAD
+git filter-branch -f --prune-empty ${LATEST_PUBLIC_MASTER_SHA1}..HEAD
 
 pause
 # merge public_master_work into public_master (ff-only for safety)
@@ -126,9 +115,15 @@ info "update public_master"
 git checkout "public_master"
 git merge --ff-only "public_master_work"
 
-# create tags
-info "create tags"
-git tag "tag_public_master_${MASTER_HEAD}" "public_master"
-git tag "tag_master_${MASTER_HEAD}" "master"
+info "create refs"
+PUBLIC_MASTER_HEAD_SHA1="$(git log -1 --pretty="%H" "public_master")"
+git update-ref "${REF_TREE_ROOT}/${TIMESTAMP}/master" "${MASTER_HEAD_SHA1}"
+git update-ref "${REF_TREE_ROOT}/${TIMESTAMP}/public_master" "${PUBLIC_MASTER_HEAD_SHA1}"
+
+# log created references
+git for-each-ref --count=2 --sort=-refname 'refs/public_sync'
 
 info "done"
+
+exit 0
+
