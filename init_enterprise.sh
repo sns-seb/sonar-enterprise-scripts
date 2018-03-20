@@ -38,7 +38,7 @@ TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
 git checkout master
 
 info "Syncing refs from remote..."
-git fetch "${REMOTE}" "+refs/foo/*:refs/foo/*"
+git fetch "${REMOTE}" "+${REF_TREE_ROOT}/*:${REF_TREE_ROOT}/*"
 
 # create "pulic_master" if doesn't exist yet
 if [ "$(git branch --list "public_master")" = "" ]; then

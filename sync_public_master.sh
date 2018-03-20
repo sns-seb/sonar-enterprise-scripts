@@ -52,7 +52,7 @@ TIMESTAMP="$(date +"%Y-%m-%d_%H-%M-%S")"
 git checkout "master"
 
 info "Syncing refs from remote..."
-git fetch "${REMOTE}" "+refs/foo/*:refs/foo/*"
+git fetch "${REMOTE}" "+${REF_TREE_ROOT}/*:${REF_TREE_ROOT}/*"
 
 info "Reading references..."
 LATEST_PUBLIC_MASTER_REF="$(git for-each-ref --count=1 --sort=-refname 'refs/public_sync/*/public_master')"
@@ -92,7 +92,7 @@ refresh_branch "master_work" "master"
 
 pause
 # remove private repo data since LATEST_MASTER_SHA1
-info "deleting private data from public_master_work"
+info "deleting private data from master_work"
 git filter-branch -f --prune-empty --index-filter 'git rm --cached --ignore-unmatch private/ -r' ${LATEST_MASTER_SHA1}..HEAD
 
 pause
