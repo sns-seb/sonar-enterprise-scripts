@@ -17,23 +17,23 @@
 
 set -euo pipefail
 
-function info() {
+info() {
   local MESSAGE="$1"
   echo "[INFO] ${MESSAGE}"
 }
 
-function error() {
+error() {
   local MESSAGE="$1"
   echo 
   echo "[ERROR] ${MESSAGE}"
 }
 
-function pause() {
+pause() {
   echo "pause..."
   read
 }
 
-function refresh_branch() {
+refresh_branch() {
   local BRANCH="$1"
   local NEW_HEAD="$2"
 

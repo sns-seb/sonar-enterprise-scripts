@@ -9,7 +9,7 @@
 
 set -euo pipefail
 
-function info() {
+info() {
   local MESSAGE="$1"
   echo "[INFO] ${MESSAGE}"
 }
