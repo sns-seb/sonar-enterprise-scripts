@@ -25,7 +25,6 @@ error() {
 }
 
 REMOTE="origin"
-SQ_REMOTE="sq"
 REF_TREE_ROOT="refs/public_sync"
 # in branch master_public, created from SonarSource/sonarqube master
 PUBLIC_SQ_HEAD_SHA1="73e39a73e70b97ab0043cf5abc4eddcf68f2ce00"
