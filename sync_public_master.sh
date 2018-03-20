@@ -38,7 +38,7 @@ refresh_branch() {
   local NEW_HEAD="$2"
 
   info "refresh ${BRANCH} to ${NEW_HEAD}"
-  if [ -n "$(git branch --list "${BRANCH}")" ]; then
+  if [ "$(git branch --list "${BRANCH}")" ]; then
     git branch -D "${BRANCH}"
   fi
   git checkout -b "${BRANCH}" "${NEW_HEAD}"
