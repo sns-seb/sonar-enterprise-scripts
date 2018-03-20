@@ -46,13 +46,16 @@ function refresh_branch() {
 
 REF_TREE_ROOT="refs/public_sync"
 REMOTE="origin"
+SQ_REMOTE="sq"
 TIMESTAMP="$(date +"%Y-%m-%d_%H-%M-%S")"
 
 # so that we know where we are
 git checkout "master"
 
-info "Syncing refs from remote..."
-git fetch "${REMOTE}" "+${REF_TREE_ROOT}/*:${REF_TREE_ROOT}/*"
+info "Fetching ${SQ_REMOTE}/master and refs from remote..."
+git fetch --no-tags "${SQ_REMOTE}"
+git merge --ff-only "${SQ_REMOTE}/master" "public_master"
+git fetch --no-tags "${REMOTE}" "+${REF_TREE_ROOT}/*:${REF_TREE_ROOT}/*"
 
 info "Reading references..."
 LATEST_PUBLIC_MASTER_REF="$(git for-each-ref --count=1 --sort=-refname 'refs/public_sync/*/public_master')"
