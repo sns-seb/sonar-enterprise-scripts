@@ -40,13 +40,13 @@ info "Syncing refs from remote..."
 git fetch "${REMOTE}" "+${REF_TREE_ROOT}/*:${REF_TREE_ROOT}/*"
 
 # create "pulic_master" if doesn't exist yet
-if [ "$(git branch --list "public_master")" = "" ]; then
+if [ -z "$(git branch --list "public_master")" ]; then
   info "create branch public_master from ${PUBLIC_SQ_HEAD_SHA1}"
   git checkout -b "public_master" "${PUBLIC_SQ_HEAD_SHA1}"
 fi
 
 # fail if already initialized
-if [ "$(git for-each-ref --count=1 "${REF_TREE_ROOT}")" != "" ]; then
+if [ "$(git for-each-ref --count=1 "${REF_TREE_ROOT}")" ]; then
   error "References already initialized. See values below:"
   git for-each-ref "${REF_TREE_ROOT}"
   exit 1
