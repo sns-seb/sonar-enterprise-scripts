@@ -40,6 +40,11 @@ git checkout master
 info "Syncing refs from remote..."
 git fetch "${REMOTE}" "+${REF_TREE_ROOT}/*:${REF_TREE_ROOT}/*"
 
+info "Creating SQ remote..."
+if ! $(git remote | grep -qxF "${SQ_REMOTE}"); then
+  git remote add "${SQ_REMOTE}" "git@github.com:SonarSource/sonarqube.git"
+fi
+
 # create "pulic_master" if doesn't exist yet
 if [ "$(git branch --list "public_master")" = "" ]; then
   info "create branch public_master from ${PUBLIC_SQ_HEAD_SHA1}"
@@ -50,7 +55,7 @@ fi
 if [ "$(git for-each-ref --count=1 "${REF_TREE_ROOT}")" != "" ]; then
   error "References already initialized. See values below:"
   git for-each-ref "${REF_TREE_ROOT}"
-#  exit 1
+  exit 1
 fi
 
 info "create inital refs"
