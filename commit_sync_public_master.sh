@@ -30,9 +30,11 @@ function pause() {
 REMOTE="origin"
 REF_TREE_ROOT="refs/public_sync"
 
+# to know where we are
+git checkout public_master
+
 info "Pushing public_master..."
-git checkout "public_master"
-#git push
+git push "${REMOTE}" "public_master:public_master"
 
 info "Pushing refs to ${REMOTE}..."
 TMP_EXISTING_REFS_FILE=$(mktemp)
@@ -40,7 +42,7 @@ git ls-remote "${REMOTE}" | cut -f 2 | grep "^${REF_TREE_ROOT}/" > ${TMP_EXISTIN
 
 for ref in $(git for-each-ref "${REF_TREE_ROOT}" | cut -f 2 | grep -v --file="${TMP_EXISTING_REFS_FILE}"); do
   echo "committing ref $ref"
-  #git push "${REMOTE}" "${ref}"
+  git push "${REMOTE}" "${ref}"
 done
 
 info "done"
