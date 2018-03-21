@@ -9,7 +9,7 @@
 
 set -euo pipefail
 
-function info() {
+info() {
   local MESSAGE="$1"
   echo "[INFO] ${MESSAGE}"
 }
@@ -18,7 +18,7 @@ ENTERPRISE_REPO="git@github.com:SonarSource/sonar-enterprise.git"
 
 info "updating sonarqube master from sonar-enterprise public_master..."
 
-if [ "$(git remote -v | grep "enterprise" || true)" = "" ]; then
+if ! git remote | grep -qxF enterprise; then
   git remote add enterprise "${ENTERPRISE_REPO}"
 fi
 
