@@ -52,6 +52,11 @@ TIMESTAMP="$(date +"%Y-%m-%d_%H-%M-%S")"
 # so that we know where we are
 git checkout "master"
 
+info "Creating SQ remote..."
+if ! $(git remote | grep -qxF "${SQ_REMOTE}"); then
+  git remote add "${SQ_REMOTE}" "git@github.com:SonarSource/sonarqube.git"
+fi
+
 info "Fetching ${SQ_REMOTE}/master and refs from remote..."
 git fetch --no-tags "${SQ_REMOTE}"
 git merge --ff-only "${SQ_REMOTE}/master" "public_master"
