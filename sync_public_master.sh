@@ -59,8 +59,10 @@ fi
 
 info "Fetching ${SQ_REMOTE}/master and refs from remote..."
 git fetch --no-tags "${SQ_REMOTE}"
-git merge --ff-only "${SQ_REMOTE}/master" "public_master"
 git fetch --no-tags "${REMOTE}" "+${REF_TREE_ROOT}/*:${REF_TREE_ROOT}/*"
+
+# ensure we have an up to date local branch of ${SQ_REMOTE}/master
+refresh_branch "public_master" "${SQ_REMOTE}/master"
 
 info "Reading references..."
 LATEST_PUBLIC_MASTER_REF="$(git for-each-ref --count=1 --sort=-refname 'refs/public_sync/*/public_master')"
