@@ -49,8 +49,8 @@ REMOTE="origin"
 SQ_REMOTE="sq"
 TIMESTAMP="$(date +"%Y-%m-%d_%H-%M-%S")"
 
-# so that we know where we are
-git checkout "master"
+info "Fetching master..."
+git checkout "master" && git pull "${REMOTE}" "master"
 
 info "Creating SQ remote..."
 if ! $(git remote | grep -qxF "${SQ_REMOTE}"); then
